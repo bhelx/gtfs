@@ -1,0 +1,2 @@
+%{"csv": {:hex, :csv, "1.4.0"},
+  "parallel_stream": {:hex, :parallel_stream, "1.0.3"}}

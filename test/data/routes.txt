@@ -1,0 +1,3 @@
+route_long_name,route_id,route_type,route_text_color,agency_id,route_color,route_url,route_desc,route_short_name
+Desire-Louisa,9855,3,000000,NORTA,F8B9AB,,,80
+St. Charles Streetcar,10123,0,FFFFFF,NORTA,006737,,,12 St. Charles
