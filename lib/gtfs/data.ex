@@ -1,4 +1,4 @@
-defmodule Gtfs.Data do
+defmodule GTFS.Data do
   defstruct ~w(
     route_short_names
     routes

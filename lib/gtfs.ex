@@ -1,5 +1,5 @@
-defmodule Gtfs do
+defmodule GTFS do
   def parse(folder) do
-    Gtfs.Parser.parse(folder)
+    GTFS.Parser.parse(folder)
   end
 end

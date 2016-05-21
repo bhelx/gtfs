@@ -1,7 +1,7 @@
-defmodule Gtfs.Parser do
-  alias Gtfs.Route
-  alias Gtfs.Shape
-  alias Gtfs.Data
+defmodule GTFS.Parser do
+  alias GTFS.Route
+  alias GTFS.Shape
+  alias GTFS.Data
 
   @route_headers ~w(
     route_id
@@ -25,29 +25,31 @@ defmodule Gtfs.Parser do
     |> to_structs
     |> insert_route_short_name_map
     |> Map.take([:routes, :route_short_names])
-    |> Gtfs.Data.from_map
+    |> GTFS.Data.from_map
   end
 
   def normalize_streams(streams) do
     streams
-    |> Enum.map(&normalize/1)
+    |> Enum.map(&normalize_stream/1)
     |> Enum.into(%{})
   end
 
-  def normalize({:routes, stream}) do
-    normalized =
-      stream
-      |> Stream.map(fn route_map ->
-        route_map
-        |> Map.put("route_id", Regex.replace(~r/[^0-9]/, route_map["route_id"], ""))
-        |> Map.put("route_short_name", Regex.replace(~r/[^0-9]/, Map.get(route_map, "route_short_name", ""), ""))
-        |> Map.put("route_color", "#" <> Map.get(route_map, "route_color", ""))
-      end)
-
-    {:routes, normalized}
+  def normalize_stream({key, stream}) do
+    {key, Stream.map(stream, fn attr_map -> normalize_map(attr_map, key) end)}
   end
-  def normalize({key, stream}) do
-    {key, stream}
+
+  def normalize_map(attr_map, :routes) do
+    id = Regex.replace(~r/[^0-9]/, attr_map["route_id"], "")
+    short_name = Map.get(attr_map, "route_short_name", "")
+    color = Map.get(attr_map, "route_color", "")
+
+    attr_map
+    |> Map.put("route_id", Regex.replace(~r/[^0-9]/, attr_map["route_id"], ""))
+    |> Map.put("route_short_name", Regex.replace(~r/[^0-9]/, short_name, ""))
+    |> Map.put("route_color", "#" <> color)
+  end
+  def normalize_map(attr_map, _) do
+    attr_map
   end
 
   def to_maps(streams) do
@@ -57,21 +59,21 @@ defmodule Gtfs.Parser do
   def to_map(:routes, streams) do
     routes =
       streams[:routes]
-      |> Enum.reduce(%{}, fn(r, acc) -> Map.put(acc, r["route_id"], r) end)
+      |> Stream.map(fn route -> {route["route_id"], route} end)
 
     Map.put(streams, :routes, routes)
   end
   def to_map(:trips, streams) do
     trips =
       streams[:trips]
-      |> Enum.reduce(%{}, fn(r, acc) -> Map.put(acc, r["trip_id"], r) end)
+      |> Stream.map(fn trip -> {trip["trip_id"], trip} end)
 
     Map.put(streams, :trips, trips)
   end
   def to_map(:shapes, streams) do
     shapes =
       streams[:shapes]
-      |> Enum.reduce(%{}, fn(r, acc) ->
+      |> Enum.reduce(%{}, fn(r, acc) -> # TODO - how to keep this as a stream?
         Map.update(acc, r["shape_id"], [], &([r | &1]))
       end)
 
@@ -80,7 +82,7 @@ defmodule Gtfs.Parser do
   def to_map(:stops, streams) do
     stops =
       streams[:stops]
-      |> Enum.reduce(%{}, fn(r, acc) -> Map.put(acc, r["stop_id"], r) end)
+      |> Stream.map(fn stop -> {stop["stop_id"], stop} end)
 
     Map.put(streams, :stops, stops)
   end
@@ -88,29 +90,28 @@ defmodule Gtfs.Parser do
   def insert_shapes_into_routes(streams) do
     routes =
       streams[:routes]
-      |> Enum.map(fn {route_id, route} ->
-        shapes =
-          streams[:trips]
-          |> Enum.filter(fn {_id, t} -> t["route_id"] == route_id end)
-          |> Enum.map(fn {_id, t} -> t["shape_id"] end)
-          |> Enum.uniq
-          |> Enum.map(fn shape_id -> streams[:shapes][shape_id] end)
-          |> List.flatten
-
-        route = Map.put(route, "shapes", shapes)
-
-        {route_id, route}
+      |> Stream.map(fn {route_id, route} ->
+        shapes = shapes_for_route(route_id, streams[:trips], streams[:shapes])
+        {route_id, Map.put(route, "shapes", shapes)}
       end)
-      |> Enum.into(%{})
 
     Map.put(streams, :routes, routes)
+  end
+
+  def shapes_for_route(route_id, trips, shapes) do
+    trips
+    |> Stream.filter(fn {_id, t} -> t["route_id"] == route_id end)
+    |> Stream.map(fn {_id, t} -> t["shape_id"] end)
+    |> Stream.uniq
+    |> Stream.flat_map(fn shape_id -> shapes[shape_id] end)
   end
 
   def to_structs(streams) do
     routes =
       streams[:routes]
-      |> Enum.map(fn {id, r} -> {id, Route.from_map(r)} end)
-      |> Enum.map(fn {id, r} ->
+      |> Stream.map(fn {id, r} -> {id, Route.from_map(r)} end)
+      |> Stream.map(fn {id, r} ->
+        # insert shapes
         route = Map.update(r, :shapes, [], fn s ->
           Enum.map(s, &Shape.from_map/1)
         end)
@@ -124,9 +125,8 @@ defmodule Gtfs.Parser do
   def insert_route_short_name_map(streams) do
     short_name_map =
       streams[:routes]
-      |> Enum.reduce(%{}, fn({_id, r}, acc) ->
-        Map.put(acc, r.route_short_name, r.route_id)
-      end)
+      |> Enum.map(fn {_id, r} -> {r.route_short_name, r.route_id} end)
+      |> Enum.into(%{})
 
     Map.put(streams, :route_short_names, short_name_map)
   end

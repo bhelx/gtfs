@@ -1,4 +1,4 @@
-defmodule Gtfs.Shape do
+defmodule GTFS.Shape do
   defstruct ~w(
     shape_id
     shape_dist_traveled
