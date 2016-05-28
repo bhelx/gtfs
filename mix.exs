@@ -3,7 +3,7 @@ defmodule GTFS.Mixfile do
 
   def project do
     [app: :gtfs,
-     version: "0.1.0",
+     version: "0.2.0",
      elixir: "~> 1.2",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
@@ -41,7 +41,7 @@ defmodule GTFS.Mixfile do
   defp package do
     [
       name: :gtfs,
-      files: ["lib", "priv", "mix.exs", "README*", "LICENSE*", "license*"],
+      files: ["lib", "mix.exs", "README*", "LICENSE*"],
       maintainers: ["Benjamin Eckel"],
       licenses: ["MIT"],
       links: %{"GitHub" => "https://github.com/bhelx/gtfs"}]

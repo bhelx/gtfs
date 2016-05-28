@@ -1,15 +1,16 @@
-defmodule GTFS.Route do
+defmodule GTFS.Trip do
   defstruct ~w(
-    agency_id
-    route_color
-    route_desc
     route_id
-    route_long_name
-    route_short_name
-    route_text_color
-    route_type
-    route_url
-    trips
+    service_id
+    trip_id
+    trip_headsign
+    trip_short_name
+    direction_id
+    block_id
+    shape_id
+    wheelchair_accessible
+    bikes_allowed
+    shapes
   )a
 
   def from_map(attr_map) do

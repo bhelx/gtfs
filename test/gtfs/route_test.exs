@@ -13,7 +13,7 @@ defmodule GTFS.RouteTest do
       "route_text_color": "FFFFFF",
       "route_type": "0",
       "route_url": "http://example.com",
-      "shapes": []
+      "trips": []
     }
 
     expected_route = %GTFS.Route{
@@ -26,7 +26,7 @@ defmodule GTFS.RouteTest do
       route_text_color: "FFFFFF",
       route_type: "0",
       route_url: "http://example.com",
-      shapes: []
+      trips: []
     }
 
     assert GTFS.Route.from_map(attr_map) == expected_route

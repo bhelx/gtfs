@@ -22,10 +22,12 @@ defmodule GTFS.ParserTest do
     route = data.routes["10123"]
 
     assert Utils.is_route(route)
-    assert length(route.shapes) == 404
 
-    shape = List.first(route.shapes)
+    assert length(route.trips) == 10
+    trip = List.first(route.trips)
 
-    assert Utils.is_shape(shape)
+    assert Utils.is_trip(trip)
+
+    assert length(trip.shapes) == 189
   end
 end

@@ -7,6 +7,9 @@ defmodule Utils do
 
   def is_shape(%GTFS.Shape{}), do: true
   def is_shape(_), do: false
+
+  def is_trip(%GTFS.Trip{}), do: true
+  def is_trip(_), do: false
 end
 
 ExUnit.start()

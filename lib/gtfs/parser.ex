@@ -2,6 +2,7 @@ defmodule GTFS.Parser do
   alias GTFS.Route
   alias GTFS.Shape
   alias GTFS.Data
+  alias GTFS.Trip
 
   @route_headers ~w(
     route_id
@@ -21,7 +22,7 @@ defmodule GTFS.Parser do
     load_csv_streams(folder)
     |> normalize_streams
     |> to_maps
-    |> insert_shapes_into_routes
+    |> insert_trips_into_routes
     |> to_structs
     |> insert_route_short_name_map
     |> Map.take([:routes, :route_short_names])
@@ -87,23 +88,27 @@ defmodule GTFS.Parser do
     Map.put(streams, :stops, stops)
   end
 
-  def insert_shapes_into_routes(streams) do
+  def insert_trips_into_routes(streams) do
     routes =
       streams[:routes]
       |> Stream.map(fn {route_id, route} ->
-        shapes = shapes_for_route(route_id, streams[:trips], streams[:shapes])
-        {route_id, Map.put(route, "shapes", shapes)}
+        trips =
+          streams[:trips]
+          |> Stream.filter(fn {_id, trip} ->
+            trip["route_id"] == route_id
+          end)
+          |> Stream.map(fn {_id, trip} ->
+            Map.put(trip, :shapes, shapes_for_trip(trip, streams[:shapes]))
+          end)
+
+        {route_id, Map.put(route, "trips", trips)}
       end)
 
     Map.put(streams, :routes, routes)
   end
 
-  def shapes_for_route(route_id, trips, shapes) do
-    trips
-    |> Stream.filter(fn {_id, t} -> t["route_id"] == route_id end)
-    |> Stream.map(fn {_id, t} -> t["shape_id"] end)
-    |> Stream.uniq
-    |> Stream.flat_map(fn shape_id -> shapes[shape_id] end)
+  def shapes_for_trip(trip, shapes) do
+    Map.get(shapes, trip["shape_id"])
   end
 
   def to_structs(streams) do
@@ -111,11 +116,16 @@ defmodule GTFS.Parser do
       streams[:routes]
       |> Stream.map(fn {id, r} -> {id, Route.from_map(r)} end)
       |> Stream.map(fn {id, r} ->
-        # insert shapes
-        route = Map.update(r, :shapes, [], fn s ->
-          Enum.map(s, &Shape.from_map/1)
+        # build it's trips
+        trips = Stream.map(r.trips, fn trip_map ->
+          shapes = Stream.map(trip_map[:shapes], &Shape.from_map/1)
+
+          trip_map
+          |> Trip.from_map
+          |> Map.put(:shapes, Enum.to_list(shapes))
         end)
-        {id, route}
+
+        {id, Map.put(r, :trips, Enum.to_list(trips))}
       end)
       |> Enum.into(%{})
 
