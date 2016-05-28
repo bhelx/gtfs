@@ -10,6 +10,7 @@ defmodule GTFS.Route do
     route_type
     route_url
     trips
+    shapes
   )a
 
   def from_map(attr_map) do

@@ -10,7 +10,7 @@ The library is currently published to [Hex](https://hex.pm/packages/gtfs). To us
 
 ```elixir
   def deps do
-    [{:gtfs, "~> 0.2"}]
+    [{:gtfs, "~> 0.3"}]
   end
 ```
 

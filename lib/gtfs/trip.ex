@@ -10,7 +10,6 @@ defmodule GTFS.Trip do
     shape_id
     wheelchair_accessible
     bikes_allowed
-    shapes
   )a
 
   def from_map(attr_map) do

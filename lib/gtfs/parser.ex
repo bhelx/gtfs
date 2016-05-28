@@ -97,35 +97,52 @@ defmodule GTFS.Parser do
           |> Stream.filter(fn {_id, trip} ->
             trip["route_id"] == route_id
           end)
-          |> Stream.map(fn {_id, trip} ->
-            Map.put(trip, :shapes, shapes_for_trip(trip, streams[:shapes]))
-          end)
 
-        {route_id, Map.put(route, "trips", trips)}
+      shapes =
+        trips
+        |> Enum.map(fn {_id, t} -> t["shape_id"] end)
+        |> Enum.uniq
+        |> Enum.map(fn shape_id ->
+          {shape_id, Map.get(streams[:shapes], shape_id)}
+        end)
+
+        route =
+          route
+          |> Map.put("trips", trips)
+          |> Map.put("shapes", shapes)
+
+        {route_id, route}
       end)
 
     Map.put(streams, :routes, routes)
   end
 
-  def shapes_for_trip(trip, shapes) do
-    Map.get(shapes, trip["shape_id"])
-  end
-
   def to_structs(streams) do
     routes =
       streams[:routes]
-      |> Stream.map(fn {id, r} -> {id, Route.from_map(r)} end)
-      |> Stream.map(fn {id, r} ->
-        # build it's trips
-        trips = Stream.map(r.trips, fn trip_map ->
-          shapes = Stream.map(trip_map[:shapes], &Shape.from_map/1)
+      |> Stream.map(fn {id, route} -> {id, Route.from_map(route)} end)
+      |> Stream.map(fn {id, route} ->
+        trips =
+          route.trips
+          |> Stream.map(fn {id, trip_map} ->
+            {id, Trip.from_map(trip_map)}
+          end)
+          |> Enum.into(%{})
 
-          trip_map
-          |> Trip.from_map
-          |> Map.put(:shapes, Enum.to_list(shapes))
-        end)
+        shapes =
+          route.shapes
+          |> Enum.map(fn {id, shape_points} ->
+            shape = Enum.map(shape_points, &Shape.from_map/1)
+            {id, shape}
+          end)
+          |> Enum.into(%{})
 
-        {id, Map.put(r, :trips, Enum.to_list(trips))}
+        route =
+          route
+          |> Map.put(:trips, trips)
+          |> Map.put(:shapes, shapes)
+
+        {id, route}
       end)
       |> Enum.into(%{})
 

@@ -23,11 +23,27 @@ defmodule GTFS.ParserTest do
 
     assert Utils.is_route(route)
 
-    assert length(route.trips) == 10
-    trip = List.first(route.trips)
+    assert length(Map.keys(route.trips)) == 10
+
+    first = route.trips |> Map.keys |> List.first
+    trip = Map.get(route.trips, first)
 
     assert Utils.is_trip(trip)
 
-    assert length(trip.shapes) == 189
+    shape_ids =
+      route.trips
+      |> Enum.map(fn {_id, t}-> t.shape_id end)
+      |> Enum.uniq
+
+    assert length(shape_ids) == 2
+
+    assert length(Map.keys(route.shapes)) == 2
+
+    shape =
+      route.shapes
+      |> Map.get(List.first(shape_ids))
+      |> List.first
+
+    assert Utils.is_shape(shape)
   end
 end
