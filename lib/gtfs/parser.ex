@@ -36,7 +36,7 @@ defmodule GTFS.Parser do
   end
 
   def normalize_stream({key, stream}) do
-    {key, Stream.map(stream, fn attr_map -> normalize_map(attr_map, key) end)}
+    {key, Enum.map(stream, fn attr_map -> normalize_map(attr_map, key) end)}
   end
 
   def normalize_map(attr_map, :routes) do
@@ -60,14 +60,14 @@ defmodule GTFS.Parser do
   def to_map(:routes, streams) do
     routes =
       streams[:routes]
-      |> Stream.map(fn route -> {route["route_id"], route} end)
+      |> Enum.map(fn route -> {route["route_id"], route} end)
 
     Map.put(streams, :routes, routes)
   end
   def to_map(:trips, streams) do
     trips =
       streams[:trips]
-      |> Stream.map(fn trip -> {trip["trip_id"], trip} end)
+      |> Enum.map(fn trip -> {trip["trip_id"], trip} end)
 
     Map.put(streams, :trips, trips)
   end
@@ -83,7 +83,7 @@ defmodule GTFS.Parser do
   def to_map(:stops, streams) do
     stops =
       streams[:stops]
-      |> Stream.map(fn stop -> {stop["stop_id"], stop} end)
+      |> Enum.map(fn stop -> {stop["stop_id"], stop} end)
 
     Map.put(streams, :stops, stops)
   end
@@ -91,10 +91,10 @@ defmodule GTFS.Parser do
   def insert_trips_into_routes(streams) do
     routes =
       streams[:routes]
-      |> Stream.map(fn {route_id, route} ->
+      |> Enum.map(fn {route_id, route} ->
         trips =
           streams[:trips]
-          |> Stream.filter(fn {_id, trip} ->
+          |> Enum.filter(fn {_id, trip} ->
             trip["route_id"] == route_id
           end)
 
@@ -120,11 +120,11 @@ defmodule GTFS.Parser do
   def to_structs(streams) do
     routes =
       streams[:routes]
-      |> Stream.map(fn {id, route} -> {id, Route.from_map(route)} end)
-      |> Stream.map(fn {id, route} ->
+      |> Enum.map(fn {id, route} -> {id, Route.from_map(route)} end)
+      |> Enum.map(fn {id, route} ->
         trips =
           route.trips
-          |> Stream.map(fn {id, trip_map} ->
+          |> Enum.map(fn {id, trip_map} ->
             {id, Trip.from_map(trip_map)}
           end)
           |> Enum.into(%{})
